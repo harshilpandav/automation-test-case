@@ -1,15 +1,34 @@
 name: Playwright Tests
 
-# Manual-only: this workflow does not run on push or pull request.
-# Start it from the Actions tab with "Run workflow".
+# Runs automatically on the TestRuns branch only; main stays manual.
+# Any branch can still be started by hand from the Actions tab.
 #
-# To re-enable automatic runs, uncomment the push/pull_request triggers below.
+# The workflow_dispatch inputs below are what makes this workflow eligible
+# for a dashboard-triggered re-run: TestDino only offers the "Re-run" button
+# for a workflow that declares a `testdino_rerun_from` input, and it fills
+# these in when you start a re-run from a run's page. Leave them empty for a
+# normal manual run.
 on:
-  # push:
-  #   branches: [main]
-  # pull_request:
-  #   branches: [main]
+  push:
+    branches: [TestRuns]
   workflow_dispatch:
+    inputs:
+      testdino_rerun_from:
+        description: 'TestDino run id to re-run from (test_run_...). Filled in by the dashboard.'
+        required: false
+        default: ''
+      testdino_rerun_scope:
+        description: 'Which tests to re-run: failed, flaky, or failed-and-flaky'
+        required: false
+        default: 'failed'
+      testdino_test_ids:
+        description: 'Comma-separated Playwright test ids to re-run instead of the scope'
+        required: false
+        default: ''
+      testdino_exclude_ids:
+        description: 'Comma-separated Playwright test ids to drop from the scope'
+        required: false
+        default: ''
 
 jobs:
   test:
@@ -33,22 +52,45 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Chromium only: the suite is pinned to the chromium project below,
+      # so installing firefox would just slow the job down.
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
       # Do NOT pass --reporter here: a CLI --reporter flag replaces the whole
       # reporter list from playwright.config.ts and silently drops the
       # TestDino reporter, so no results would reach the dashboard.
       #
-      # continue-on-error is set because this suite contains 15 deliberately
-      # failing tests (TC-21..TC-35), so `playwright test` always exits
-      # non-zero. Remove it once those tests are gone, otherwise real
-      # regressions will not fail the build.
+      # continue-on-error is set because these suites contain deliberately
+      # failing tests (todo TC-21..TC-35, and the store "failing" blocks),
+      # so `playwright test` always exits non-zero. Remove it once those
+      # tests are gone, otherwise real regressions will not fail the build.
+      #
+      # With testdino_rerun_from set, the TestDino CLI asks the dashboard which
+      # tests to re-run and hands Playwright the selection as --test-list, so
+      # only those tests execute. Needs @testdino/playwright >= 2.7.0 and
+      # Playwright >= 1.56. Without it, the whole suite runs as normal.
       - name: Run Playwright tests
         continue-on-error: true
         env:
           TESTDINO_TOKEN: ${{ secrets.TESTDINO_TOKEN }}
-        run: npx playwright test
+          RERUN_FROM: ${{ github.event.inputs.testdino_rerun_from }}
+          RERUN_SCOPE: ${{ github.event.inputs.testdino_rerun_scope }}
+          RERUN_TEST_IDS: ${{ github.event.inputs.testdino_test_ids }}
+          RERUN_EXCLUDE_IDS: ${{ github.event.inputs.testdino_exclude_ids }}
+        run: |
+          set -o pipefail
+          if [ -z "$RERUN_FROM" ]; then
+            echo "Full run: no testdino_rerun_from supplied."
+            npx playwright test --project=chromium
+            exit $?
+          fi
+
+          echo "Re-run of $RERUN_FROM (scope: ${RERUN_SCOPE:-failed})"
+          args=(test --rerun "${RERUN_SCOPE:-failed}" --from-run "$RERUN_FROM")
+          [ -n "$RERUN_TEST_IDS" ] && args+=(--test-ids "$RERUN_TEST_IDS")
+          [ -n "$RERUN_EXCLUDE_IDS" ] && args+=(--exclude-ids "$RERUN_EXCLUDE_IDS")
+          npx tdpw "${args[@]}" -- --project=chromium
 
       - name: Upload Playwright HTML report
         if: always()
