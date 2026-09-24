@@ -1,14 +1,10 @@
 name: Playwright Tests
 
-# Manual-only: this workflow does not run on push or pull request.
-# Start it from the Actions tab with "Run workflow".
-#
-# To re-enable automatic runs, uncomment the push/pull_request triggers below.
+# Runs automatically on the TestRuns branch only; main stays manual.
+# Any branch can still be started by hand from the Actions tab.
 on:
-  # push:
-  #   branches: [main]
-  # pull_request:
-  #   branches: [main]
+  push:
+    branches: [TestRuns]
   workflow_dispatch:
 
 jobs:
@@ -33,22 +29,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Chromium only: the suite is pinned to the chromium project below,
+      # so installing firefox would just slow the job down.
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
       # Do NOT pass --reporter here: a CLI --reporter flag replaces the whole
       # reporter list from playwright.config.ts and silently drops the
       # TestDino reporter, so no results would reach the dashboard.
       #
-      # continue-on-error is set because this suite contains 15 deliberately
-      # failing tests (TC-21..TC-35), so `playwright test` always exits
-      # non-zero. Remove it once those tests are gone, otherwise real
-      # regressions will not fail the build.
+      # continue-on-error is set because these suites contain deliberately
+      # failing tests (todo TC-21..TC-35, and the store "failing" blocks),
+      # so `playwright test` always exits non-zero. Remove it once those
+      # tests are gone, otherwise real regressions will not fail the build.
       - name: Run Playwright tests
         continue-on-error: true
         env:
           TESTDINO_TOKEN: ${{ secrets.TESTDINO_TOKEN }}
-        run: npx playwright test
+        run: npx playwright test --project=chromium
 
       - name: Upload Playwright HTML report
         if: always()
