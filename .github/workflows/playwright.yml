@@ -25,11 +25,11 @@ on:
         description: 'Which tests to re-run: failed, flaky, or failed-and-flaky'
         required: false
         default: 'failed'
-      testdino_test_ids:
+      testdino_rerun_test_ids:
         description: 'Comma-separated Playwright test ids to re-run instead of the scope'
         required: false
         default: ''
-      testdino_exclude_ids:
+      testdino_rerun_exclude_ids:
         description: 'Comma-separated Playwright test ids to drop from the scope'
         required: false
         default: ''
@@ -48,7 +48,7 @@ jobs:
           # SHA here, so the re-run executes the same code rather than the
           # branch tip. Empty for a normal run, which falls back to the ref
           # the workflow was triggered on.
-          ref: ${{ github.event.inputs.testdino_rerun_sha || github.ref }}
+          ref: ${{ inputs.testdino_rerun_sha || github.sha }}
           # TestDino resolves commit metadata (author, message) from git history.
           fetch-depth: 0
 
@@ -81,25 +81,28 @@ jobs:
       # Playwright >= 1.56. Without it, the whole suite runs as normal.
       - name: Run Playwright tests
         continue-on-error: true
+        shell: bash
         env:
           TESTDINO_TOKEN: ${{ secrets.TESTDINO_TOKEN }}
-          RERUN_FROM: ${{ github.event.inputs.testdino_rerun_from }}
-          RERUN_SCOPE: ${{ github.event.inputs.testdino_rerun_scope }}
-          RERUN_TEST_IDS: ${{ github.event.inputs.testdino_test_ids }}
-          RERUN_EXCLUDE_IDS: ${{ github.event.inputs.testdino_exclude_ids }}
+          TD_RERUN_FROM: ${{ inputs.testdino_rerun_from }}
+          TD_RERUN_SCOPE: ${{ inputs.testdino_rerun_scope }}
+          TD_RERUN_TEST_IDS: ${{ inputs.testdino_rerun_test_ids }}
+          TD_RERUN_EXCLUDE_IDS: ${{ inputs.testdino_rerun_exclude_ids }}
         run: |
-          set -o pipefail
-          if [ -z "$RERUN_FROM" ]; then
-            echo "Full run: no testdino_rerun_from supplied."
-            npx playwright test --project=chromium
-            exit $?
+          args=()
+          if [ -n "$TD_RERUN_FROM" ]; then
+            args+=(--rerun "${TD_RERUN_SCOPE:-failed}" --from-run "$TD_RERUN_FROM")
+            if [ -n "$TD_RERUN_TEST_IDS" ]; then
+              args+=(--test-ids "$TD_RERUN_TEST_IDS")
+            fi
+            if [ -n "$TD_RERUN_EXCLUDE_IDS" ]; then
+              args+=(--exclude-ids "$TD_RERUN_EXCLUDE_IDS")
+            fi
           fi
-
-          echo "Re-run of $RERUN_FROM (scope: ${RERUN_SCOPE:-failed})"
-          args=(test --rerun "${RERUN_SCOPE:-failed}" --from-run "$RERUN_FROM")
-          [ -n "$RERUN_TEST_IDS" ] && args+=(--test-ids "$RERUN_TEST_IDS")
-          [ -n "$RERUN_EXCLUDE_IDS" ] && args+=(--exclude-ids "$RERUN_EXCLUDE_IDS")
-          npx tdpw "${args[@]}" -- --project=chromium
+          # Re-run flags go before --; everything after it is passed to
+          # Playwright unchanged. With no run id the array is empty and this
+          # is an ordinary full-suite run.
+          npx tdpw test "${args[@]}" -- --project=chromium
 
       - name: Upload Playwright HTML report
         if: always()

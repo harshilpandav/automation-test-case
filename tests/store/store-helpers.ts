@@ -12,10 +12,16 @@ export const STORE = 'https://storedemo.testdino.com';
 /** Total number of products the catalogue ships with. */
 export const PRODUCT_COUNT = 14;
 
-/** Open a store route and wait until the client-rendered content is on screen. */
+/**
+ * Open a store route and wait until the client-rendered content is on screen.
+ *
+ * Waits on a header nav link rather than the logo: the logo is an <img> that
+ * reports as hidden until it has decoded, which made this intermittently fail
+ * under parallel load.
+ */
 export async function openStore(page: Page, path = '/') {
   await page.goto(`${STORE}${path}`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('header-logo')).toBeVisible();
+  await expect(page.getByTestId('header-menu-home')).toBeVisible({ timeout: 15000 });
 }
 
 /** Open the catalogue and wait for the product grid to render. */
