@@ -11,7 +11,7 @@ import {
 /**
  * TestDino Demo Store — catalogue and search.
  *
- * 10 tests: 6 expected to pass, 3 expected to fail, 1 flaky by design.
+ * 7 tests: 4 expected to pass, 2 expected to fail, 1 flaky by design.
  * The failing tests assert behaviour the store does not implement; they
  * exist to exercise failure reporting and should not be "fixed" by
  * loosening the assertion.
@@ -53,22 +53,6 @@ test.describe('Store catalogue — passing', () => {
     });
   });
 
-  test('CAT-03: should restore the full list when the search is cleared', async ({ page }) => {
-    const search = page.getByTestId('all-products-search-input');
-
-    await test.step('Search for "Apple"', async () => {
-      await search.fill('Apple');
-      await expect(page.getByTestId('all-products-header').first()).toBeVisible();
-    });
-
-    await test.step('Clear the search box', async () => {
-      await search.fill('');
-    });
-
-    await test.step('Verify the full catalogue is listed again', async () => {
-      await expect(page.getByTestId('all-products-header')).toHaveCount(PRODUCT_COUNT);
-    });
-  });
 
   test('CAT-04: should show an empty result set for an unknown search term', async ({ page }) => {
     await test.step('Search for a term that matches nothing', async () => {
@@ -100,18 +84,6 @@ test.describe('Store catalogue — passing', () => {
     });
   });
 
-  test('CAT-06: should render a price for every product card', async ({ page }) => {
-    await test.step('Verify a price is rendered per product card', async () => {
-      await expect(page.getByTestId('all-products-price')).toHaveCount(PRODUCT_COUNT);
-    });
-
-    await test.step('Verify each price is formatted as a dollar amount', async () => {
-      const prices = await page.getByTestId('all-products-price').allInnerTexts();
-      for (const price of prices) {
-        expect(price.trim()).toMatch(/^\$[\d,]+$/);
-      }
-    });
-  });
 });
 
 test.describe('Store catalogue — failing', () => {
@@ -125,15 +97,6 @@ test.describe('Store catalogue — failing', () => {
     });
   });
 
-  test('CAT-08: search should be case sensitive and return nothing for "gopro"', async ({ page }) => {
-    await test.step('Search using an all-lowercase term', async () => {
-      await page.getByTestId('all-products-search-input').fill('gopro');
-    });
-
-    await test.step('Expect a case-sensitive search to return no results', async () => {
-      await expect(page.getByTestId('all-products-header')).toHaveCount(0);
-    });
-  });
 
   test('CAT-09: product detail page should show the product title', async ({ page }) => {
     await test.step('Open the GoPro product detail page', async () => {

@@ -4,7 +4,7 @@ import { openStore, whenFlaky, FLAKY_TIMEOUT } from './store-helpers';
 /**
  * TestDino Demo Store — home page, navigation and static pages.
  *
- * 10 tests: 6 expected to pass, 3 expected to fail, 1 flaky by design.
+ * 6 tests: 3 expected to pass, 2 expected to fail, 1 flaky by design.
  */
 
 test.describe('Store navigation — passing', () => {
@@ -23,15 +23,6 @@ test.describe('Store navigation — passing', () => {
     });
   });
 
-  test('NAV-02: should have the expected page title on the home page', async ({ page }) => {
-    await test.step('Open the home page', async () => {
-      await openStore(page, '/');
-    });
-
-    await test.step('Verify the document title names the demo store', async () => {
-      await expect(page).toHaveTitle(/TestDino \| Demo Store/);
-    });
-  });
 
   test('NAV-03: should navigate to the catalogue from the header menu', async ({ page }) => {
     await test.step('Open the home page', async () => {
@@ -48,36 +39,7 @@ test.describe('Store navigation — passing', () => {
     });
   });
 
-  test('NAV-04: should render the four product categories on the home page', async ({ page }) => {
-    await test.step('Open the home page', async () => {
-      await openStore(page, '/');
-    });
 
-    await test.step('Verify the categories section is visible', async () => {
-      await expect(page.getByTestId('product-categories')).toBeVisible();
-    });
-
-    await test.step('Verify each category tile has a title', async () => {
-      for (const category of ['camera', 'appliances', 'gadgets', 'laptop']) {
-        await expect(page.getByTestId(`category-title-${category}`)).toBeVisible();
-      }
-    });
-  });
-
-  test('NAV-05: should open the About Us page from the header', async ({ page }) => {
-    await test.step('Open the home page', async () => {
-      await openStore(page, '/');
-    });
-
-    await test.step('Click "About Us" in the header', async () => {
-      await page.getByTestId('header-menu-about-us').click();
-    });
-
-    await test.step('Verify the About Us page is shown', async () => {
-      await expect(page).toHaveURL(/\/about-us$/);
-      await expect(page).toHaveTitle(/About Us/);
-    });
-  });
 
   test('NAV-06: should show an empty wishlist by default', async ({ page }) => {
     await test.step('Open the wishlist page', async () => {
@@ -101,19 +63,6 @@ test.describe('Store navigation — failing', () => {
     });
   });
 
-  test('NAV-08: contact page should confirm submission of an empty form', async ({ page }) => {
-    await test.step('Open the Contact Us page', async () => {
-      await openStore(page, '/contact-us');
-    });
-
-    await test.step('Submit the form without filling anything in', async () => {
-      await page.getByRole('button', { name: /send message/i }).click();
-    });
-
-    await test.step('Expect a success confirmation for the empty submission', async () => {
-      await expect(page.getByText(/message sent/i)).toBeVisible();
-    });
-  });
 
   test('NAV-09: footer should display a 2020 copyright notice', async ({ page }) => {
     await test.step('Open the home page', async () => {

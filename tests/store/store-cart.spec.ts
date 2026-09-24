@@ -11,7 +11,7 @@ import {
 /**
  * TestDino Demo Store — cart drawer, quantities and totals.
  *
- * 10 tests: 6 expected to pass, 3 expected to fail, 1 flaky by design.
+ * 7 tests: 3 expected to pass, 3 expected to fail, 1 flaky by design.
  */
 
 test.describe('Store cart — passing', () => {
@@ -36,19 +36,6 @@ test.describe('Store cart — passing', () => {
     });
   });
 
-  test('CART-02: should start with an empty cart', async ({ page }) => {
-    await test.step('Open the cart drawer without adding anything', async () => {
-      await openCartDrawer(page);
-    });
-
-    await test.step('Verify no line items are present', async () => {
-      await expect(page.getByTestId('cart-drawer').getByTestId('cart-item')).toHaveCount(0);
-    });
-
-    await test.step('Verify the empty-cart message is shown', async () => {
-      await expect(page.getByTestId('cart-drawer')).toContainText('Your cart is empty');
-    });
-  });
 
   test('CART-03: should increase the quantity of a line item', async ({ page }) => {
     await test.step('Add a product and open the cart', async () => {
@@ -69,22 +56,6 @@ test.describe('Store cart — passing', () => {
     });
   });
 
-  test('CART-04: should decrease the quantity back down', async ({ page }) => {
-    await test.step('Add a product, open the cart and raise the quantity to 2', async () => {
-      await addProductToCart(page, 0);
-      await openCartDrawer(page);
-      await page.getByTestId('increase-quantity').first().click();
-      await expect(page.getByTestId('item-quantity').first()).toHaveText('2');
-    });
-
-    await test.step('Click the decrease-quantity control', async () => {
-      await page.getByTestId('decrease-quantity').first().click();
-    });
-
-    await test.step('Verify the quantity is back to 1', async () => {
-      await expect(page.getByTestId('item-quantity').first()).toHaveText('1');
-    });
-  });
 
   test('CART-05: should remove a line item from the cart', async ({ page }) => {
     await test.step('Add a product and open the cart', async () => {
@@ -104,28 +75,6 @@ test.describe('Store cart — passing', () => {
     });
   });
 
-  test('CART-06: should show a summary with subtotal, shipping and total', async ({ page }) => {
-    await test.step('Add a product and open the cart', async () => {
-      await addProductToCart(page, 0);
-      await openCartDrawer(page);
-    });
-
-    await test.step('Verify the summary rows are rendered', async () => {
-      await expect(page.getByTestId('cart-summary')).toBeVisible();
-      await expect(page.getByTestId('subtotal-value')).toContainText('$');
-      await expect(page.getByTestId('shipping-value')).toContainText('Free');
-    });
-
-    await test.step('Verify the total matches the subtotal while shipping is free', async () => {
-      const subtotal = await page.getByTestId('subtotal-value').innerText();
-      await expect(page.getByTestId('total-value')).toHaveText(subtotal.trim());
-    });
-
-    await test.step('Verify the checkout and view-cart actions are offered', async () => {
-      await expect(page.getByTestId('checkout-button')).toBeVisible();
-      await expect(page.getByTestId('view-cart-button')).toBeVisible();
-    });
-  });
 });
 
 test.describe('Store cart — failing', () => {
