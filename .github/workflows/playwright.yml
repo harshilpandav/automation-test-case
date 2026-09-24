@@ -17,6 +17,10 @@ on:
         description: 'TestDino run id to re-run from (test_run_...). Filled in by the dashboard.'
         required: false
         default: ''
+      testdino_rerun_sha:
+        description: 'Commit SHA to check out for a same-commit re-run. Filled in by the dashboard.'
+        required: false
+        default: ''
       testdino_rerun_scope:
         description: 'Which tests to re-run: failed, flaky, or failed-and-flaky'
         required: false
@@ -40,6 +44,11 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
         with:
+          # A dashboard re-run in "this commit" mode supplies the source run's
+          # SHA here, so the re-run executes the same code rather than the
+          # branch tip. Empty for a normal run, which falls back to the ref
+          # the workflow was triggered on.
+          ref: ${{ github.event.inputs.testdino_rerun_sha || github.ref }}
           # TestDino resolves commit metadata (author, message) from git history.
           fetch-depth: 0
 
