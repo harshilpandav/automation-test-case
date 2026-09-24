@@ -1,10 +1,14 @@
 name: Playwright Tests
 
+# Manual-only: this workflow does not run on push or pull request.
+# Start it from the Actions tab with "Run workflow".
+#
+# To re-enable automatic runs, uncomment the push/pull_request triggers below.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # push:
+  #   branches: [main]
+  # pull_request:
+  #   branches: [main]
   workflow_dispatch:
 
 jobs:
